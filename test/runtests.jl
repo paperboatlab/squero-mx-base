@@ -17,6 +17,19 @@ using SqueroBase
   @test chart.kind == :surface
 end
 
+@testset "problems are queued for the kernel" begin
+  take_problems()
+  take = optimize((f = [-1.0, -1.0], lb = [0.0, 0.0], ub = [1.0, 1.0]))
+  @test only(take_problems()) === take
+end
+
+@testset "matrices travel as rows" begin
+  problem = optimize((H = [2.0 1.0; 1.0 2.0], f = [-1.0, -1.0], A = [1.0 2.0], b = [3.0]))
+  data = JSON3.read(problem_json(problem))
+  @test data["H"] == [[2.0, 1.0], [1.0, 2.0]]
+  @test data["A"] == [[1.0, 2.0]]
+end
+
 @testset "solvers are selected from the fields" begin
   lp = optimize((f = [-3.0, -2.0], A = [2.0 1.0], b = [4.0], lb = [0.0, 0.0]))
   @test lp.kind == :lp
