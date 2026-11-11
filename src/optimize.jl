@@ -2,6 +2,10 @@
 # (`read_problem` for LP/QP, `read_nlp_problem` for NLP). The solver stays in Paperboat.
 
 const PROBLEM_SCHEMA_VERSION = 1
+const PROBLEMS = Any[]
+
+"""The problems built since the last `take_problems()`, as the kernel returns them."""
+take_problems() = (out = copy(PROBLEMS); empty!(PROBLEMS); out)
 
 struct OptimizationProblem
   kind::Symbol             # :lp, :qp or :nlp
@@ -21,6 +25,8 @@ _to_dict(x::NamedTuple) = Dict{String, Any}(string(k) => _plain(v) for (k, v) in
 _plain(v::AbstractDict) = _to_dict(v)
 _plain(v::NamedTuple) = _to_dict(v)
 _plain(v::AbstractVector) = [_plain(x) for x in v]
+# A matrix is rows of numbers, the shape the C++ readers expect (not JSON3's flat column order).
+_plain(v::AbstractMatrix) = [[_plain(v[i, j]) for j in axes(v, 2)] for i in axes(v, 1)]
 _plain(v::Tuple) = [_plain(x) for x in v]
 _plain(v::Function) = throw(ArgumentError("pass the objective/constraints as expression strings (x1, x2, …); a Julia Function cannot travel to Paperboat"))
 _plain(v) = v
@@ -40,5 +46,7 @@ function optimize(problem)
   kind = haskey(data, "fun") ? :nlp : (haskey(data, "H") && data["H"] !== nothing ? :qp : :lp)
   kind === :nlp && haskey(data, "H") && throw(ArgumentError("an NLP has fun, not H"))
   kind === :nlp && !(data["fun"] isa AbstractString) && throw(ArgumentError("fun must be an expression string"))
-  return OptimizationProblem(kind, data)
+  problem = OptimizationProblem(kind, data)
+  push!(PROBLEMS, problem)
+  problem
 end

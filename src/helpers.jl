@@ -1,5 +1,8 @@
 # Helpers MATLAB scripts expect that Julia Base does not define with the same shape.
 
+"""`meshgrid(x)` returns `X, Y` over the same vector, as MATLAB does."""
+meshgrid(x) = meshgrid(x, x)
+
 """`meshgrid(x, y)` returns `X, Y`, both `length(y) × length(x)`, as MATLAB does."""
 function meshgrid(x, y)
   X = [xi for _ in y, xi in x]

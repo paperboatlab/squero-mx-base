@@ -15,6 +15,23 @@ using SqueroBase
   chart = only(take_charts())
   @test (chart.grid, chart.cell) == ((2, 2), (2, 1))
   @test chart.kind == :surface
+  data = JSON3.read(chart_json(chart))
+  @test data["series"][1]["z"] == [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+  @test data["series"][1]["x"] == [1.0, 2.0]
+  @test data["series"][1]["y"] == [1.0, 2.0, 3.0]
+end
+
+@testset "problems are queued for the kernel" begin
+  take_problems()
+  take = optimize((f = [-1.0, -1.0], lb = [0.0, 0.0], ub = [1.0, 1.0]))
+  @test only(take_problems()) === take
+end
+
+@testset "matrices travel as rows" begin
+  problem = optimize((H = [2.0 1.0; 1.0 2.0], f = [-1.0, -1.0], A = [1.0 2.0], b = [3.0]))
+  data = JSON3.read(problem_json(problem))
+  @test data["H"] == [[2.0, 1.0], [1.0, 2.0]]
+  @test data["A"] == [[1.0, 2.0]]
 end
 
 @testset "solvers are selected from the fields" begin
@@ -60,6 +77,8 @@ end
 @testset "helpers" begin
   X, Y = meshgrid(1:3, 1:2)
   @test size(X) == (2, 3) && size(Y) == (2, 3)
+  X1, Y1 = meshgrid(1:3)
+  @test size(X1) == (3, 3) && X1[1, :] == [1, 2, 3] && Y1[:, 1] == [1, 2, 3]
   Xp, Yp, Z = peaks(9)
   @test size(Z) == (9, 9) && size(Xp) == (9, 9) && size(Yp) == (9, 9)
 end
