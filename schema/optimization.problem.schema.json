@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paperboatlab.github.io/schemas/optimization.problem.json",
+  "title": "Paperboat optimization problem",
+  "description": "Read by the optimization toolkit: read_problem (LP/QP) and read_nlp_problem (NLP).",
+  "type": "object",
+  "properties": {
+    "fun": { "type": "string", "description": "NLP objective expression over x1, x2, …" },
+    "x0": { "type": "array", "items": { "type": "number" } },
+    "H": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+    "f": { "type": "array", "items": { "type": "number" } },
+    "A": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+    "b": { "type": "array", "items": { "type": "number" } },
+    "Aeq": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+    "beq": { "type": "array", "items": { "type": "number" } },
+    "lb": { "type": "array", "items": { "type": ["number", "null"] } },
+    "ub": { "type": "array", "items": { "type": ["number", "null"] } },
+    "nonlcon": {
+      "type": "object",
+      "properties": {
+        "c": { "type": ["string", "array"], "items": { "type": "string" } },
+        "ceq": { "type": ["string", "array"], "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "display": { "enum": ["off", "final", "iter", "iter-detailed", "final-detailed", "notify"] },
+        "tol": { "type": "number", "minimum": 0 },
+        "max_iter": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    { "required": ["f"], "not": { "required": ["fun"] } },
+    { "required": ["H", "f"], "not": { "required": ["fun"] } },
+    { "required": ["fun", "x0"] }
+  ],
+  "additionalProperties": false
+}

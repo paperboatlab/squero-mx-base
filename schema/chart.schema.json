@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paperboatlab.github.io/schemas/chart.json",
+  "title": "Squero chart spec",
+  "description": "What SqueroBase emits and @paperboat/shared/plot renders. Julia never draws.",
+  "type": "object",
+  "required": ["schema", "kind", "title", "grid", "cell", "series"],
+  "properties": {
+    "schema": { "const": 1 },
+    "kind": { "enum": ["line", "surface", "heat", "scatter", "optimization"] },
+    "title": { "type": "string" },
+    "grid": { "type": "array", "prefixItems": [{ "type": "integer" }, { "type": "integer" }] },
+    "cell": { "type": "array", "prefixItems": [{ "type": "integer" }, { "type": "integer" }] },
+    "series": { "type": "array" },
+    "options": {
+      "type": "object",
+      "properties": {
+        "wireframe": { "type": "boolean" },
+        "colormap": { "type": "string" },
+        "point": { "type": "array", "items": { "type": "number" }, "description": "The optimum to mark on a surface/scatter" }
+      }
+    }
+  },
+  "additionalProperties": false
+}
