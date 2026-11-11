@@ -4,6 +4,7 @@
 const SCHEMA_VERSION = 1
 const CHARTS = Any[]
 const SUBPLOT = Ref((1, 1, 1, 1))  # rows, cols, row, col
+const COLORMAP = Ref("viridis")
 
 mutable struct ChartSpec
   kind::Symbol
@@ -29,6 +30,10 @@ end
 chart_json(charts::AbstractVector) = JSON3.write([JSON3.read(chart_json(c)) for c in charts])
 take_charts() = (out = copy(CHARTS); empty!(CHARTS); out)
 
+"""`colormap(name)` sets the colour map the following charts use."""
+colormap(name::AbstractString) = (COLORMAP[] = String(name); nothing)
+colormap(name::Symbol) = colormap(string(name))
+
 """`subplot(m, n, p)` sets the page and cell for the following charts, as MATLAB does."""
 function subplot(m::Integer, n::Integer, p::Integer)
   m > 0 && n > 0 || throw(ArgumentError("subplot needs positive m and n"))
@@ -46,9 +51,16 @@ function _push(kind::Symbol, title::AbstractString, series; options = Dict{Strin
   spec
 end
 
-_thex = (v) -> collect(v)
+# The C++ readers and the app take a matrix as rows of numbers, and a surface's x/y as one
+# vector each. JSON3 would write a matrix flat (column-major), so convert here, once.
+_series_value(::Val{:z}, v::AbstractMatrix) = [[Float64(x) for x in row] for row in eachrow(v)]
+_series_value(::Val{:z}, v) = [Float64(x) for x in collect(v)]
+_series_value(::Val{:x}, v::AbstractMatrix) = [Float64(x) for x in v[1, :]]
+_series_value(::Val{:y}, v::AbstractMatrix) = [Float64(x) for x in v[:, 1]]
+_series_value(_, v) = [Float64(x) for x in collect(v)]
+
 _series(; kwargs...) = Dict{String, Any}(
-  String(k) => _thex(v) for (k, v) in kwargs
+  String(k) => _series_value(Val(k), v) for (k, v) in kwargs
   if v !== nothing && !(v isa AbstractString && isempty(v))
 )
 
@@ -62,16 +74,24 @@ function plot(x, y; title = "plot", label = "", color = "")
 end
 
 """`surf(x, y, z)`: a surface. `mesh` is the same spec with the wireframe option."""
-function surf(x, y, z; title = "surf", colormap = "viridis")
-  _push(:surface, title, [_series(x = x, y = y, z = z)], options = Dict("wireframe" => false, "colormap" => colormap))
+surf(xyz::Tuple; kwargs...) = surf(xyz...; kwargs...)
+surf(z::AbstractMatrix; kwargs...) = surf(1:size(z, 2), 1:size(z, 1), z; kwargs...)
+
+function surf(x, y, z; title = "surf", colormap = COLORMAP[], point = nothing)
+  options = Dict{String, Any}("wireframe" => false, "colormap" => colormap)
+  point === nothing || (options["point"] = collect(point))
+  _push(:surface, title, [_series(x = x, y = y, z = z)], options = options)
 end
 
-function mesh(x, y, z; title = "mesh")
-  _push(:surface, title, [_series(x = x, y = y, z = z)], options = Dict("wireframe" => true))
+function mesh(x, y, z; title = "mesh", point = nothing)
+  options = Dict{String, Any}("wireframe" => true)
+  point === nothing || (options["point"] = collect(point))
+  _push(:surface, title, [_series(x = x, y = y, z = z)], options = options)
 end
 
 """`imagesc(z)` / `heatmap(z)`: a matrix as a colour field."""
-function imagesc(z; title = "imagesc", colormap = "viridis")
+imagesc(xyz::Tuple; kwargs...) = imagesc(xyz[3]; kwargs...)
+function imagesc(z; title = "imagesc", colormap = COLORMAP[])
   _push(:heat, title, [_series(z = z)], options = Dict("colormap" => colormap))
 end
 
