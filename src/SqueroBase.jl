@@ -1,23 +1,32 @@
-"""SqueroBase: the Julia-side verbs of Squero Studio MX.
+"""
+    SqueroBase
 
-It does not draw or solve. It turns MATLAB-like verbs into the JSON specifications owned by
-Paperboat: chart specs for `@paperboat/shared/plot`/`station`, optimization problems for the
-optimization toolkit, and `clear`/`clc` session events for `squero-kernel/0`.
+The session layer of Squero Studio MX: `clear`/`clc` session events, and the bridges that hand
+work to Paperboat (`optimize` builds a problem for its solver, `simulate` a run request for a
+backend). It does not plot, solve or integrate; plotting is SqueroPlot's, solving and simulation
+are Paperboat's.
+
+The kernel collects what a statement recorded with `take_events`, `take_problems` and `take_runs`.
 """
 module SqueroBase
 
 using JSON3
 
-export plot, surf, mesh, imagesc, scatter, subplot
-export optimize, state_space
 export clear, clc
-export meshgrid, peaks, colormap
-export ChartSpec, OptimizationProblem
-export take_charts, take_events, take_problems, chart_json, problem_json
+export optimize, OptimizationProblem, problem_json
+export simulate, SimulationRequest, run_json
+export take_events, take_problems, take_runs, reset_queues!
 
-include("charts.jl")
-include("helpers.jl")
-include("optimize.jl")
 include("session.jl")
+include("optimize.jl")
+include("simulate.jl")
+
+"""`reset_queues!()`: drop every recorded event, problem and run (a kernel `reset`)."""
+function reset_queues!()
+    empty!(EVENTS)
+    empty!(PROBLEMS)
+    empty!(RUNS)
+    return nothing
+end
 
 end
