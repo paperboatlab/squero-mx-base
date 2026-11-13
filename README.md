@@ -1,24 +1,28 @@
 # SqueroBase.jl
 
-The Julia-side verbs of **Squero Studio MX**. It does not draw or solve: it returns the JSON
-specifications that Paperboat owns, so there is no second renderer or solver to drift.
+The session layer of **Squero Studio MX**. It records what a script asks of the app and of
+Paperboat; it does not plot, solve or integrate.
 
 ```
-plot / surf / mesh / imagesc / scatter / subplot  -> chart.schema.json
-optimize(problem)                                  -> optimization.problem.schema.json
-state_space(A, B, C, D)                            -> the Paperboat block spec
-clear / clc                                        -> squero-kernel/0 events
-meshgrid / peaks                                   -> helpers
+clear() / clear(:x)          -> a session event: the kernel resets the session (or drops x)
+clc()                        -> a session event: the app clears its console
+optimize(problem)            -> an LP/QP/NLP for Paperboat's optimization toolkit (schema/)
+simulate(graph; duration…)   -> a graph.run request for a Paperboat backend
+take_events / take_problems / take_runs / reset_queues!   -> what the kernel collects
 ```
+
+Plotting lives in [SqueroPlot.jl](../SqueroPlot.jl); the kernel loads both, so a script has
+`Figure`, `lines!`, `surface!`, … and `clear`, `optimize`, `simulate` together.
 
 ## Contracts
 
-- `schema/optimization.problem.schema.json` is the same shape the C++ `optimization` toolkit reads
+- `schema/optimization.problem.schema.json` is the shape the C++ `optimization` toolkit reads
   (`read_problem`, `read_nlp_problem`). `optimize` only builds fields; the solver and its
-  `options.display` (`off` / `final` / `iter`) stay in Paperboat.
-- `schema/chart.schema.json` is what `@paperboat/shared/plot` and `station` render. `surf` can carry
-  `options.point = (x, y, z)` so the optimum is marked on the 3D surface.
-- `clear`/`clc` are events for the kernel, not Julia functions that mutate the caller.
+  `options.display` (`off` / `final` / `iter`) stay in Paperboat. Matrices travel as rows.
+- `simulate` builds a `paperboat/0` `graph.run` message (`graph`, `settings`, `variables`). The
+  blocks (`control/state_space`, …) and solvers are Paperboat's; matrices travel as rows.
+- `clear`/`clc` are events the kernel applies between top-level statements; they never clear the
+  app's figure history.
 
 ## Test
 
